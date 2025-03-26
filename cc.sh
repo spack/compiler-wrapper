@@ -36,15 +36,9 @@ readonly lsep=''
 # the script runs. They are set by routines in spack.build_environment
 # as part of the package installation process.
 readonly params="\
-SPACK_ENV_PATH
+SPACK_COMPILER_WRAPPER_PATH
 SPACK_DEBUG_LOG_DIR
 SPACK_DEBUG_LOG_ID
-SPACK_COMPILER_SPEC
-SPACK_CC_RPATH_ARG
-SPACK_CXX_RPATH_ARG
-SPACK_F77_RPATH_ARG
-SPACK_FC_RPATH_ARG
-SPACK_LINKER_ARG
 SPACK_SHORT_SPEC
 SPACK_SYSTEM_DIRS
 SPACK_MANAGED_DIRS"
@@ -345,6 +339,9 @@ case "$command" in
         ;;
     ld|ld.gold|ld.lld)
         mode=ld
+        if [ -z "$SPACK_CC_RPATH_ARG" ]; then
+            comp="CXX"
+        fi
         ;;
     *)
         die "Unknown compiler: $command"
@@ -399,23 +396,18 @@ fi
 #
 dtags_to_add="${SPACK_DTAGS_TO_ADD}"
 dtags_to_strip="${SPACK_DTAGS_TO_STRIP}"
-linker_arg="${SPACK_LINKER_ARG}"
+
+linker_arg="ERROR: LINKER ARG WAS NOT SET, MAYBE THE PACKAGE DOES NOT DEPEND ON ${comp}?"
+eval "linker_arg=\${SPACK_${comp}_LINKER_ARG:?${linker_arg}}"
 
 # Set up rpath variable according to language.
-rpath="ERROR: RPATH ARG WAS NOT SET"
+rpath="ERROR: RPATH ARG WAS NOT SET, MAYBE THE PACKAGE DOES NOT DEPEND ON ${comp}?"
 eval "rpath=\${SPACK_${comp}_RPATH_ARG:?${rpath}}"
 
 # Dump the mode and exit if the command is dump-mode.
 if [ "$SPACK_TEST_COMMAND" = "dump-mode" ]; then
     echo "$mode"
     exit
-fi
-
-# If, say, SPACK_CC is set but SPACK_FC is not, we want to know. Compilers do not
-# *have* to set up Fortran executables, so we need to tell the user when a build is
-# about to attempt to use them unsuccessfully.
-if [ -z "$command" ]; then
-    die "Compiler '$SPACK_COMPILER_SPEC' does not have a $language compiler configured."
 fi
 
 #
@@ -426,7 +418,7 @@ new_dirs=""
 IFS=':'
 for dir in $PATH; do
     addpath=true
-    for spack_env_dir in $SPACK_ENV_PATH; do
+    for spack_env_dir in $SPACK_COMPILER_WRAPPER_PATH; do
         case "${dir%%/}" in
             "$spack_env_dir"|'.'|'')
                 addpath=false
@@ -787,15 +779,17 @@ case "$mode" in
             C)
                 extend spack_flags_list SPACK_ALWAYS_CFLAGS
                 extend spack_flags_list SPACK_CFLAGS
+                preextend flags_list SPACK_TARGET_ARGS_CC
                 ;;
             CXX)
                 extend spack_flags_list SPACK_ALWAYS_CXXFLAGS
                 extend spack_flags_list SPACK_CXXFLAGS
+                preextend flags_list SPACK_TARGET_ARGS_CXX
+                ;;
+            F)
+                preextend flags_list SPACK_TARGET_ARGS_FORTRAN
                 ;;
         esac
-
-        # prepend target args
-        preextend flags_list SPACK_TARGET_ARGS
         ;;
 esac
 
