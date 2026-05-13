@@ -94,23 +94,6 @@ setsep() {
     esac
 }
 
-# prepend LISTNAME ELEMENT
-#
-# Prepend ELEMENT to the list stored in the variable LISTNAME.
-# Handles empty lists and single-element lists.
-prepend() {
-    varname="$1"
-    elt="$2"
-
-    if empty "$varname"; then
-        eval "$varname=\"\${elt}\""
-    else
-        # Get the appropriate separator for the list we're appending to.
-        setsep "$varname"
-        eval "$varname=\"\${elt}${sep}\${$varname}\""
-    fi
-}
-
 # append LISTNAME ELEMENT [SEP]
 #
 # Append ELEMENT to the list stored in the variable LISTNAME,
@@ -135,13 +118,45 @@ append() {
 # to the list stored in LISTNAME1.
 # If PREFIX is provided, prepend it to each element.
 extend() {
-    # Figure out the appropriate IFS for the list we're reading.
-    setsep "$2"
+    _listname="$1"
+    _src_list="$2"
+    _prefix="$3"
+
+    setsep "$_src_list"
     if [ "$sep" != " " ]; then
         IFS="$sep"
     fi
-    eval "for elt in \${$2}; do append $1 \"$3\${elt}\"; done"
+    # Turn list into positional parameters
+    eval "set -- \${$_src_list}"
     unset IFS
+
+    if [ $# -eq 0 ]; then
+        return
+    fi
+
+    setsep "$_listname"
+    _target_sep="$sep"
+
+    if [ -z "$_prefix" ]; then
+        IFS="$_target_sep"
+        _ext_str="$*"
+        unset IFS
+    else
+        _ext_str=""
+        for elt in "$@"; do
+            if [ -z "$_ext_str" ]; then
+                _ext_str="${_prefix}${elt}"
+            else
+                _ext_str="${_ext_str}${_target_sep}${_prefix}${elt}"
+            fi
+        done
+    fi
+
+    if empty "$_listname"; then
+        eval "$_listname=\"\${_ext_str}\""
+    else
+        eval "$_listname=\"\${$_listname}${_target_sep}\${_ext_str}\""
+    fi
 }
 
 # preextend LISTNAME1 LISTNAME2 [PREFIX]
@@ -150,20 +165,44 @@ extend() {
 # to the list at LISTNAME1, preserving order.
 # If PREFIX is provided, prepend it to each element.
 preextend() {
-    # Figure out the appropriate IFS for the list we're reading.
-    setsep "$2"
+    _listname="$1"
+    _src_list="$2"
+    _prefix="$3"
+
+    setsep "$_src_list"
     if [ "$sep" != " " ]; then
         IFS="$sep"
     fi
-
-    # first, reverse the list to prepend
-    _reversed_list=""
-    eval "for elt in \${$2}; do prepend _reversed_list \"$3\${elt}\"; done"
-
-    # prepend reversed list to preextend in order
-    IFS="${lsep}"
-    for elt in $_reversed_list; do prepend "$1" "$3${elt}"; done
+    eval "set -- \${$_src_list}"
     unset IFS
+
+    if [ $# -eq 0 ]; then
+        return
+    fi
+
+    setsep "$_listname"
+    _target_sep="$sep"
+
+    if [ -z "$_prefix" ]; then
+        IFS="$_target_sep"
+        _ext_str="$*"
+        unset IFS
+    else
+        _ext_str=""
+        for elt in "$@"; do
+            if [ -z "$_ext_str" ]; then
+                _ext_str="${_prefix}${elt}"
+            else
+                _ext_str="${_ext_str}${_target_sep}${_prefix}${elt}"
+            fi
+        done
+    fi
+
+    if empty "$_listname"; then
+        eval "$_listname=\"\${_ext_str}\""
+    else
+        eval "$_listname=\"\${_ext_str}${_target_sep}\${$_listname}\""
+    fi
 }
 
 execute() {
@@ -966,7 +1005,7 @@ fi
 if [ -n "$SPACK_CCACHE_BINARY" ]; then
     case "$lang_flags" in
         C|CXX)  # ccache only supports C languages
-            prepend full_command_list "${SPACK_CCACHE_BINARY}"
+            full_command_list="${SPACK_CCACHE_BINARY}${lsep}${full_command_list}"
             # workaround for stage being a temp folder
             # see #3761#issuecomment-294352232
             export CCACHE_NOHASHDIR=yes
