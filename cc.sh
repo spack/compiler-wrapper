@@ -196,6 +196,7 @@ execute() {
         output_log="$SPACK_DEBUG_LOG_DIR/spack-cc-$SPACK_DEBUG_LOG_ID.out.log"
         echo "[$mode] $command $input_command" >> "$input_log"
         IFS="$lsep"
+        # shellcheck disable=SC2086
         echo "[$mode] "$full_command_list >> "$output_log"
         unset IFS
     fi
@@ -365,20 +366,17 @@ if [ -z "$mode" ] || [ "$mode" = ld ]; then
     done
 fi
 
-# Finish setting up the mode.
+# Finish setting up the mode, and check whether -frandom-seed needs to be set.
+eval "_set_frandom_seed=\${SPACK_${comp}_HAS_FRANDOM_SEED:-}"
 if [ -z "$mode" ]; then
     mode=ccld
     for arg in "$@"; do
-        if [ "$arg" = "-E" ]; then
-            mode=cpp
-            break
-        elif [ "$arg" = "-S" ]; then
-            mode=as
-            break
-        elif [ "$arg" = "-c" ]; then
-            mode=cc
-            break
-        fi
+        case $arg in
+            -E) mode=cpp ;;
+            -S) mode=as ;;
+            -c) mode=cc ;;
+            -frandom-seed=*) _set_frandom_seed= ;;
+        esac
     done
 fi
 
@@ -437,9 +435,10 @@ export PATH="$new_dirs"
 
 if [ "$mode" = vcheck ]; then
     full_command_list="$command"
-    args="$@"
     extend full_command_list vcheck_flags
-    extend full_command_list args
+    for arg in "$@"; do
+        append full_command_list "$arg"
+    done
     execute
 fi
 
@@ -580,6 +579,7 @@ categorize_arguments() {
                 eval "\
                 stripped=\"\${1##$before}\"
                 "
+                # shellcheck disable=SC2154  # shellcheck doesn't see eval
                 if [ "$stripped" = "$1" ] ; then
                     continue
                 fi
@@ -633,6 +633,7 @@ categorize_arguments() {
                 ;;
             -Wl,*)
                 IFS=,
+                # shellcheck disable=SC2086  # intentional splitting
                 if ! parse_Wl ${1#-Wl,}; then
                     append return_other_args_list "$1"
                 fi
@@ -803,7 +804,8 @@ case "$mode" in
 esac
 
 IFS="$lsep"
-    categorize_arguments $spack_flags_list
+# shellcheck disable=SC2086  # intentional splitting
+categorize_arguments $spack_flags_list
 unset IFS
 
 assign_path_lists spack_flags_isystem_include_dirs_list return_isystem_include_dirs_list
@@ -950,6 +952,15 @@ extend args_list libs_list "-l"
 
 full_command_list="$command"
 extend full_command_list args_list
+
+if [ -n "$_set_frandom_seed" ]; then
+    case "$mode" in
+        cc|ccld)
+            # Make GCC deterministic by setting the random seed to command line arguments
+            append full_command_list "-frandom-seed=$input_command"
+            ;;
+    esac
+fi
 
 # prepend the ccache binary if we're using ccache
 if [ -n "$SPACK_CCACHE_BINARY" ]; then
