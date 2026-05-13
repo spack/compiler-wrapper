@@ -196,6 +196,7 @@ execute() {
         output_log="$SPACK_DEBUG_LOG_DIR/spack-cc-$SPACK_DEBUG_LOG_ID.out.log"
         echo "[$mode] $command $input_command" >> "$input_log"
         IFS="$lsep"
+        # shellcheck disable=SC2086
         echo "[$mode] "$full_command_list >> "$output_log"
         unset IFS
     fi
@@ -437,9 +438,10 @@ export PATH="$new_dirs"
 
 if [ "$mode" = vcheck ]; then
     full_command_list="$command"
-    args="$@"
     extend full_command_list vcheck_flags
-    extend full_command_list args
+    for arg in "$@"; do
+        append full_command_list "$arg"
+    done
     execute
 fi
 
@@ -580,6 +582,7 @@ categorize_arguments() {
                 eval "\
                 stripped=\"\${1##$before}\"
                 "
+                # shellcheck disable=SC2154  # shellcheck doesn't see eval
                 if [ "$stripped" = "$1" ] ; then
                     continue
                 fi
@@ -633,6 +636,7 @@ categorize_arguments() {
                 ;;
             -Wl,*)
                 IFS=,
+                # shellcheck disable=SC2086  # intentional splitting
                 if ! parse_Wl ${1#-Wl,}; then
                     append return_other_args_list "$1"
                 fi
@@ -803,7 +807,8 @@ case "$mode" in
 esac
 
 IFS="$lsep"
-    categorize_arguments $spack_flags_list
+# shellcheck disable=SC2086  # intentional splitting
+categorize_arguments $spack_flags_list
 unset IFS
 
 assign_path_lists spack_flags_isystem_include_dirs_list return_isystem_include_dirs_list
