@@ -24,6 +24,8 @@
 # other separators, we set and reset it.
 unset IFS
 
+# BEGIN list functions
+
 # Separator for lists whose names end with `_list`.
 # We pick the alarm bell character, which is highly unlikely to
 # conflict with anything. This is a literal bell character (which
@@ -204,6 +206,8 @@ preextend() {
         eval "$_listname=\"\${_ext_str}${_target_sep}\${$_listname}\""
     fi
 }
+
+# END list functions
 
 execute() {
     # dump the full command if the caller supplies SPACK_TEST_COMMAND=dump-args
