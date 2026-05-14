@@ -366,16 +366,14 @@ if [ -z "$mode" ] || [ "$mode" = ld ]; then
     done
 fi
 
-# Finish setting up the mode, and check whether -frandom-seed needs to be set.
-eval "_set_frandom_seed=\${SPACK_${comp}_HAS_FRANDOM_SEED:-}"
+# Finish setting up the mode.
 if [ -z "$mode" ]; then
     mode=ccld
     for arg in "$@"; do
         case $arg in
-            -E) mode=cpp ;;
-            -S) mode=as ;;
-            -c) mode=cc ;;
-            -frandom-seed=*) _set_frandom_seed= ;;
+            -E) mode=cpp; break ;;
+            -S) mode=as; break ;;
+            -c) mode=cc; break ;;
         esac
     done
 fi
@@ -953,14 +951,27 @@ extend args_list libs_list "-l"
 full_command_list="$command"
 extend full_command_list args_list
 
-if [ -n "$_set_frandom_seed" ]; then
-    case "$mode" in
-        cc|ccld)
-            # Make GCC deterministic by setting the random seed to command line arguments
-            append full_command_list "-frandom-seed=$input_command"
-            ;;
-    esac
-fi
+case "$mode" in
+    cc|ccld)
+        eval "_frandom_seed_input=\${SPACK_${comp}_HAS_FRANDOM_SEED:-}"
+        if [ -n "$_frandom_seed_input" ]; then
+            _frandom_seed_input=""
+            setsep other_args_list
+            [ "$sep" != " " ] && IFS="$sep"
+            for arg in $other_args_list; do
+                case "$arg" in
+                    -frandom-seed=*) _frandom_seed_input=; break ;;
+                    -*|*.o|*.so|*.dylib|*.a) ;;
+                    *) _frandom_seed_input="${_frandom_seed_input}${arg}" ;;
+                esac
+            done
+            unset IFS
+            if [ -n "$_frandom_seed_input" ]; then
+                append full_command_list "-frandom-seed=$_frandom_seed_input"
+            fi
+        fi
+        ;;
+esac
 
 # prepend the ccache binary if we're using ccache
 if [ -n "$SPACK_CCACHE_BINARY" ]; then
