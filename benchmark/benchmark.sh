@@ -1,6 +1,15 @@
 #!/bin/sh
 
-export SPACK_COMPILER_WRAPPER_PATH="$PWD"
+SCRIPT_DIR=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
+REPO_DIR=$(CDPATH='' cd -- "$SCRIPT_DIR/.." && pwd)
+CC_SH="$REPO_DIR/cc.sh"
+
+if [ ! -f "$CC_SH" ]; then
+    echo "Cannot find cc.sh at $CC_SH" >&2
+    exit 1
+fi
+
+export SPACK_COMPILER_WRAPPER_PATH="$SCRIPT_DIR"
 export SPACK_DEBUG_LOG_DIR="/tmp"
 export SPACK_DEBUG_LOG_ID="bench"
 export SPACK_SHORT_SPEC="py-torch@2.11.0%gcc@14.2.0 arch=linux-ubuntu24.04-aarch64"
@@ -85,14 +94,14 @@ export SPACK_COMPILER_FLAGS_KEEP=""
 export SPACK_COMPILER_FLAGS_REPLACE=""
 
 # Warmup
-./g++ -c foo.c -o foo.o
+"$SCRIPT_DIR/g++" -c foo.c -o foo.o
 
 # Do a 1000 runs
 N=1000
 _start=$(date +%s)
 _i=0
 while [ $_i -lt $N ]; do
-    ./g++ -c foo.c -o foo.o
+    "$SCRIPT_DIR/g++" -c foo.c -o foo.o
     _i=$((_i + 1))
 done
 _end=$(date +%s)
