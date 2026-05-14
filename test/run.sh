@@ -1012,6 +1012,46 @@ expected: $_expected_LR"
 }
 
 # ---------------------------------------------------------------------------
+# -frandom-seed
+# ---------------------------------------------------------------------------
+
+test_frandom_seed_not_added_without_env() {
+    wrapper_environment
+    _out=$(dump_args cc '-c
+hello.c
+-O2')
+    if printf '%s\n' "$_out" | grep -F -- '-frandom-seed=' >/dev/null; then
+        fail "frandom_seed_absent: -frandom-seed should not appear without SPACK_CC_HAS_FRANDOM_SEED"
+    fi
+}
+
+test_frandom_seed_filters_args() {
+    wrapper_environment
+    SPACK_CC_HAS_FRANDOM_SEED=1; export SPACK_CC_HAS_FRANDOM_SEED
+
+    # cc mode: -frandom-seed should contain only source files, concatenated
+    _out=$(dump_args cc '-c
+-O2
+-I/some/include
+hello.c
+world.c
+foo.o
+bar.a
+baz.so
+quux.dylib')
+    expect_contains frandom_seed_value "$_out" '-frandom-seed=hello.cworld.c'
+
+    # User-supplied -frandom-seed suppresses auto-generated one
+    _out=$(dump_args cc '-c
+-frandom-seed=custom
+hello.c')
+    if printf '%s\n' "$_out" | grep -cF -- '-frandom-seed=' | grep -qv '^1$'; then
+        fail "frandom_seed_user_override: expected exactly one -frandom-seed"
+    fi
+    expect_contains frandom_seed_user_passthrough "$_out" '-frandom-seed=custom'
+}
+
+# ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
 
@@ -1029,6 +1069,8 @@ test_disable_new_dtags
 test_filter_enable_new_dtags
 test_linker_strips_loopopt
 test_spack_managed_dirs_are_prioritized
+test_frandom_seed_not_added_without_env
+test_frandom_seed_filters_args
 '
 
 if [ $# -gt 0 ]; then
