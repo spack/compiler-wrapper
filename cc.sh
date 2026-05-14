@@ -956,13 +956,16 @@ case "$mode" in
         eval "_frandom_seed_input=\${SPACK_${comp}_HAS_FRANDOM_SEED:-}"
         if [ -n "$_frandom_seed_input" ]; then
             _frandom_seed_input=""
-            for arg in "$@"; do
+            setsep other_args_list
+            [ "$sep" != " " ] && IFS="$sep"
+            for arg in $other_args_list; do
                 case "$arg" in
                     -frandom-seed=*) _frandom_seed_input=; break ;;
                     -*|*.o|*.so|*.dylib|*.a) ;;
                     *) _frandom_seed_input="${_frandom_seed_input}${arg}" ;;
                 esac
             done
+            unset IFS
             if [ -n "$_frandom_seed_input" ]; then
                 append full_command_list "-frandom-seed=$_frandom_seed_input"
             fi

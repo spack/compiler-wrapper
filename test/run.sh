@@ -1029,10 +1029,15 @@ test_frandom_seed_filters_args() {
     wrapper_environment
     SPACK_CC_HAS_FRANDOM_SEED=1; export SPACK_CC_HAS_FRANDOM_SEED
 
-    # cc mode: -frandom-seed should contain only source files, concatenated
+    # cc mode: -frandom-seed should contain only source files, concatenated.
+    # Includes space-separated path flags to verify their values do not leak.
     _out=$(dump_args cc '-c
 -O2
 -I/some/include
+-isystem
+/some/sys
+-L
+/some/lib
 hello.c
 world.c
 foo.o
