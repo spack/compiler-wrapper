@@ -221,13 +221,13 @@ case "$*" in
         ;;
 esac
 
-# ensure required variables are set (POSIX 2.6.2 ${parameter:?word})
-: "${SPACK_COMPILER_WRAPPER_PATH:?Error: compiler wrapper must be invoked by Spack}"
-: "${SPACK_DEBUG_LOG_DIR:?Error: compiler wrapper must be invoked by Spack}"
-: "${SPACK_DEBUG_LOG_ID:?Error: compiler wrapper must be invoked by Spack}"
-: "${SPACK_SHORT_SPEC:?Error: compiler wrapper must be invoked by Spack}"
-: "${SPACK_SYSTEM_DIRS:?Error: compiler wrapper must be invoked by Spack}"
-: "${SPACK_MANAGED_DIRS:?Error: compiler wrapper must be invoked by Spack}"
+# Ensure required variables are set
+: "${SPACK_COMPILER_WRAPPER_PATH:?Error: the compiler wrapper must be invoked from Spack}"
+: "${SPACK_DEBUG_LOG_DIR:?Error: the compiler wrapper must be invoked from Spack}"
+: "${SPACK_DEBUG_LOG_ID:?Error: the compiler wrapper must be invoked from Spack}"
+: "${SPACK_SHORT_SPEC:?Error: the compiler wrapper must be invoked from Spack}"
+: "${SPACK_SYSTEM_DIRS:?Error: the compiler wrapper must be invoked from Spack}"
+: "${SPACK_MANAGED_DIRS:?Error: the compiler wrapper must be invoked from Spack}"
 
 # eval this because SPACK_MANAGED_DIRS and SPACK_SYSTEM_DIRS are inputs we don't wanna loop over.
 # moving the eval inside the function would eval it every call.
