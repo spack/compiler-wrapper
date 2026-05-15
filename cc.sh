@@ -140,7 +140,7 @@ extend() {
     else
         _ext_str="${_prefix}$1"
         shift
-        for elt in "$@"; do
+        for elt; do
             _ext_str="${_ext_str}${_dst_sep}${_prefix}${elt}"
         done
     fi
@@ -174,7 +174,7 @@ preextend() {
     else
         _ext_str="${_prefix}$1"
         shift
-        for elt in "$@"; do
+        for elt; do
             _ext_str="${_ext_str}${_dst_sep}${_prefix}${elt}"
         done
     fi
