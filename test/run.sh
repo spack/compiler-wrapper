@@ -74,7 +74,7 @@ fail() {
 # no trailing newline.
 concat() {
     _first=1
-    for _piece in "$@"; do
+    for _piece; do
         [ -z "$_piece" ] && continue
         if [ "$_first" -eq 1 ]; then
             printf '%s' "$_piece"
