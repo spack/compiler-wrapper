@@ -281,24 +281,10 @@ append_path_lists() {
     esac
 }
 
-# Check if optional parameters are defined
-# If we aren't asking for debug flags, don't add them
-if [ -z "${SPACK_ADD_DEBUG_FLAGS:-}" ]; then
-    SPACK_ADD_DEBUG_FLAGS="false"
-fi
-
-# SPACK_ADD_DEBUG_FLAGS must be true/false/custom
-is_valid="false"
-for param in "true" "false" "custom"; do
-  if [ "$param" = "$SPACK_ADD_DEBUG_FLAGS" ];  then
-      is_valid="true"
-  fi
-done
-
-# Exit with error if we are given an incorrect value
-if [ "$is_valid" = "false" ]; then
-    die "SPACK_ADD_DEBUG_FLAGS, if defined, must be one of 'true', 'false', or 'custom'."
-fi
+case "${SPACK_ADD_DEBUG_FLAGS:-false}" in
+    true|false|custom) ;;
+    *) die "SPACK_ADD_DEBUG_FLAGS must be true, false, or custom" ;;
+esac
 
 # Figure out the type of compiler, the language, and the mode so that
 # the compiler script knows what to do.
