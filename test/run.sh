@@ -1271,6 +1271,77 @@ test_lsep_prepend_pattern() {
 }
 
 # ---------------------------------------------------------------------------
+# -Werror handling
+# ---------------------------------------------------------------------------
+
+# _werror_set_mode MODE -> exports KEEP/REPLACE for one of three modes:
+#   all      keep every -Werror* flag
+#   specific keep -Werror-* and -Werror=*, rewrite bare -Werror to -Wno-error
+#   none     rewrite all -Werror* to -Wno-error*
+_werror_set_mode() {
+    case "$1" in
+        all)
+            SPACK_COMPILER_FLAGS_KEEP='-Werror*'
+            SPACK_COMPILER_FLAGS_REPLACE=''
+            ;;
+        specific)
+            SPACK_COMPILER_FLAGS_KEEP='-Werror-*|-Werror=*'
+            SPACK_COMPILER_FLAGS_REPLACE='-Werror-|-Wno-error= -Werror|-Wno-error'
+            ;;
+        none)
+            SPACK_COMPILER_FLAGS_KEEP=''
+            SPACK_COMPILER_FLAGS_REPLACE='-Werror-|-Wno-error= -Werror|-Wno-error'
+            ;;
+    esac
+    export SPACK_COMPILER_FLAGS_KEEP SPACK_COMPILER_FLAGS_REPLACE
+}
+
+test_werror_handling() {
+    wrapper_environment
+
+    # Family 1: -Werror / -Werror=specific
+    _in1='-Werror
+-Werror=specific'
+
+    _werror_set_mode all
+    _out=$(dump_args cc "$_in1")
+    expect_contains werror_all1 "$_out" '-Werror'
+
+    _werror_set_mode specific
+    _out=$(dump_args cc "$_in1")
+    expect_contains     werror_spec1 "$_out" '-Wno-error'
+    expect_not_contains werror_spec1 "$_out" '-Werror'
+
+    _werror_set_mode none
+    _out=$(dump_args cc "$_in1")
+    expect_contains     werror_none1 "$_out" '-Wno-error'
+    expect_contains     werror_none1 "$_out" '-Wno-error=specific'
+    expect_not_contains werror_none1 "$_out" '-Werror'
+    expect_not_contains werror_none1 "$_out" '-Werror=specific'
+
+    # Family 2: -Werror-implicit-function-declaration (non-standard dash form)
+    _in2='-Werror
+-Werror-implicit-function-declaration'
+
+    _werror_set_mode all
+    _out=$(dump_args cc "$_in2")
+    expect_contains werror_all2 "$_out" '-Werror'
+
+    _werror_set_mode specific
+    _out=$(dump_args cc "$_in2")
+    expect_contains     werror_spec2 "$_out" '-Wno-error'
+    expect_contains     werror_spec2 "$_out" '-Werror-implicit-function-declaration'
+    expect_not_contains werror_spec2 "$_out" '-Werror'
+
+    _werror_set_mode none
+    _out=$(dump_args cc "$_in2")
+    expect_contains     werror_none2 "$_out" '-Wno-error'
+    expect_contains     werror_none2 "$_out" '-Wno-error=implicit-function-declaration'
+    expect_not_contains werror_none2 "$_out" '-Werror'
+    expect_not_contains werror_none2 "$_out" '-Werror-implicit-function-declaration'
+}
+
+# ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
 
@@ -1319,6 +1390,7 @@ test_linker_strips_loopopt
 test_spack_managed_dirs_are_prioritized
 test_frandom_seed_not_added_without_env
 test_frandom_seed_filters_args
+test_werror_handling
 '
 
 all_tests="$wrapper_tests $list_ops_tests"
