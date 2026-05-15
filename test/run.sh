@@ -396,8 +396,8 @@ test_no_wrapper_environment() {
         fail "cc with no env unexpectedly exited 0"
     fi
     case "$_out" in
-        *"Spack compiler must be run from Spack"*) ;;
-        *) fail "expected 'Spack compiler must be run from Spack' in: $_out" ;;
+        *"compiler wrapper must be invoked by Spack"*) ;;
+        *) fail "expected 'compiler wrapper must be invoked by Spack' in: $_out" ;;
     esac
 }
 
