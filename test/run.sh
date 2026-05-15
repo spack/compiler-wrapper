@@ -363,6 +363,19 @@ test_no_wrapper_environment() {
     esac
 }
 
+test_separator_in_args() {
+    wrapper_environment
+    _out=$("$WRAPPER_DIR/cc" "hello$(printf '\a')world" 2>&1)
+    _rc=$?
+    if [ "$_rc" -eq 0 ]; then
+        fail "cc with bell char in args unexpectedly exited 0"
+    fi
+    case "$_out" in
+        *"Compiler command line contains our separator"*) ;;
+        *) fail "expected 'Compiler command line contains our separator' in: $_out" ;;
+    esac
+}
+
 test_modes() {
     wrapper_environment
 
@@ -1017,6 +1030,7 @@ expected: $_expected_LR"
 
 all_tests='
 test_no_wrapper_environment
+test_separator_in_args
 test_modes
 test_expected_args
 test_expected_args_with_flags

@@ -208,9 +208,11 @@ execute() {
 }
 
 # Fail with a clear message if the input contains any bell characters.
-if eval "[ \"\${*#*${lsep}}\" != \"\$*\" ]"; then
-    die "Compiler command line contains our separator ('${lsep}'). Cannot parse."
-fi
+case "$*" in
+    *"$lsep"*)
+        die "Compiler command line contains our separator ('${lsep}'). Cannot parse."
+        ;;
+esac
 
 # ensure required variables are set
 for param in $params; do
