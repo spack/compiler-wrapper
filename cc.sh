@@ -24,6 +24,8 @@
 # other separators, we set and reset it.
 unset IFS
 
+# BEGIN list functions
+
 # Separator for lists whose names end with `_list`.
 # We pick the alarm bell character, which is highly unlikely to
 # conflict with anything. This is a literal bell character (which
@@ -94,23 +96,6 @@ setsep() {
     esac
 }
 
-# prepend LISTNAME ELEMENT
-#
-# Prepend ELEMENT to the list stored in the variable LISTNAME.
-# Handles empty lists and single-element lists.
-prepend() {
-    varname="$1"
-    elt="$2"
-
-    if empty "$varname"; then
-        eval "$varname=\"\${elt}\""
-    else
-        # Get the appropriate separator for the list we're appending to.
-        setsep "$varname"
-        eval "$varname=\"\${elt}${sep}\${$varname}\""
-    fi
-}
-
 # append LISTNAME ELEMENT [SEP]
 #
 # Append ELEMENT to the list stored in the variable LISTNAME,
@@ -129,42 +114,75 @@ append() {
     fi
 }
 
-# extend LISTNAME1 LISTNAME2 [PREFIX]
+# extend DST_LISTNAME SRC_LISTNAME [PREFIX]
 #
-# Append the elements stored in the variable LISTNAME2
-# to the list stored in LISTNAME1.
+# Append the elements stored in the variable SRC_LISTNAME
+# to the list stored in DST_LISTNAME.
 # If PREFIX is provided, prepend it to each element.
 extend() {
-    # Figure out the appropriate IFS for the list we're reading.
-    setsep "$2"
-    if [ "$sep" != " " ]; then
-        IFS="$sep"
-    fi
-    eval "for elt in \${$2}; do append $1 \"$3\${elt}\"; done"
+    _dst="$1"
+    _src="$2"
+    _prefix="$3"
+
+    # Turn source list into positional parameters
+    setsep "$_src"
+    [ "$sep" != " " ] && IFS="$sep"
+    eval "set -- \${$_src}"
     unset IFS
+
+    [ $# -eq 0 ] && return
+
+    setsep "$_dst"; _dst_sep="$sep"
+
+    if [ -z "$_prefix" ]; then
+        # Fast concatenation when no prefix is needed
+        IFS="$_dst_sep"; _ext_str="$*"; unset IFS
+    else
+        _ext_str="${_prefix}$1"
+        shift
+        for elt; do
+            _ext_str="${_ext_str}${_dst_sep}${_prefix}${elt}"
+        done
+    fi
+
+    eval "$_dst=\"\${$_dst:+\${$_dst}$_dst_sep}\${_ext_str}\""
 }
 
-# preextend LISTNAME1 LISTNAME2 [PREFIX]
+# preextend DST_LISTNAME SRC_LISTNAME [PREFIX]
 #
-# Prepend the elements stored in the list at LISTNAME2
-# to the list at LISTNAME1, preserving order.
+# Prepend the elements stored in the list at SRC_LISTNAME
+# to the list at DST_LISTNAME, preserving order.
 # If PREFIX is provided, prepend it to each element.
 preextend() {
-    # Figure out the appropriate IFS for the list we're reading.
-    setsep "$2"
-    if [ "$sep" != " " ]; then
-        IFS="$sep"
+    _dst="$1"
+    _src="$2"
+    _prefix="$3"
+
+    # Turn source list into positional parameters
+    setsep "$_src"
+    [ "$sep" != " " ] && IFS="$sep"
+    eval "set -- \${$_src}"
+    unset IFS
+
+    [ $# -eq 0 ] && return
+
+    setsep "$_dst"; _dst_sep="$sep"
+
+    if [ -z "$_prefix" ]; then
+        # Fast concatenation when no prefix is needed
+        IFS="$_dst_sep"; _ext_str="$*"; unset IFS
+    else
+        _ext_str="${_prefix}$1"
+        shift
+        for elt; do
+            _ext_str="${_ext_str}${_dst_sep}${_prefix}${elt}"
+        done
     fi
 
-    # first, reverse the list to prepend
-    _reversed_list=""
-    eval "for elt in \${$2}; do prepend _reversed_list \"$3\${elt}\"; done"
-
-    # prepend reversed list to preextend in order
-    IFS="${lsep}"
-    for elt in $_reversed_list; do prepend "$1" "$3${elt}"; done
-    unset IFS
+    eval "$_dst=\"\${_ext_str}\${$_dst:+$_dst_sep\${$_dst}}\""
 }
+
+# END list functions
 
 execute() {
     # dump the full command if the caller supplies SPACK_TEST_COMMAND=dump-args
@@ -979,7 +997,7 @@ esac
 if [ -n "$SPACK_CCACHE_BINARY" ]; then
     case "$lang_flags" in
         C|CXX)  # ccache only supports C languages
-            prepend full_command_list "${SPACK_CCACHE_BINARY}"
+            full_command_list="${SPACK_CCACHE_BINARY}${lsep}${full_command_list}"
             # workaround for stage being a temp folder
             # see #3761#issuecomment-294352232
             export CCACHE_NOHASHDIR=yes
