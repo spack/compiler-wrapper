@@ -1311,6 +1311,7 @@ test_werror_handling() {
     _out=$(dump_args cc "$_in1")
     expect_contains     werror_spec1 "$_out" '-Wno-error'
     expect_not_contains werror_spec1 "$_out" '-Werror'
+    expect_contains     werror_spec1 "$_out" '-Werror=specific'
 
     _werror_set_mode none
     _out=$(dump_args cc "$_in1")
