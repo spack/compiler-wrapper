@@ -1271,6 +1271,45 @@ test_lsep_prepend_pattern() {
 }
 
 # ---------------------------------------------------------------------------
+# SPACK_ADD_DEBUG_FLAGS validation
+# ---------------------------------------------------------------------------
+
+test_add_debug_flags_validation() {
+    wrapper_environment
+    SPACK_TEST_COMMAND=dump-mode; export SPACK_TEST_COMMAND
+
+    # Unset and accepted values: wrapper should exit 0.
+    unset SPACK_ADD_DEBUG_FLAGS
+    _out=$("$WRAPPER_DIR/cc" -E 2>&1)
+    _rc=$?
+    if [ "$_rc" -ne 0 ]; then
+        fail "add_debug_flags_unset: unexpected exit $_rc, output: $_out"
+    fi
+
+    for _v in true false custom; do
+        SPACK_ADD_DEBUG_FLAGS=$_v; export SPACK_ADD_DEBUG_FLAGS
+        _out=$("$WRAPPER_DIR/cc" -E 2>&1)
+        _rc=$?
+        if [ "$_rc" -ne 0 ]; then
+            fail "add_debug_flags_${_v}: unexpected exit $_rc, output: $_out"
+        fi
+    done
+
+    # Invalid value: wrapper must die with a message mentioning the var.
+    SPACK_ADD_DEBUG_FLAGS=bogus; export SPACK_ADD_DEBUG_FLAGS
+    _out=$("$WRAPPER_DIR/cc" -E 2>&1)
+    _rc=$?
+    if [ "$_rc" -eq 0 ]; then
+        fail "add_debug_flags_invalid: expected non-zero exit, got 0"
+    fi
+    case "$_out" in
+        *"SPACK_ADD_DEBUG_FLAGS must be"*) ;;
+        *) fail "add_debug_flags_invalid: expected 'SPACK_ADD_DEBUG_FLAGS must be' in: $_out" ;;
+    esac
+    unset SPACK_ADD_DEBUG_FLAGS
+}
+
+# ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
 
@@ -1319,6 +1358,7 @@ test_linker_strips_loopopt
 test_spack_managed_dirs_are_prioritized
 test_frandom_seed_not_added_without_env
 test_frandom_seed_filters_args
+test_add_debug_flags_validation
 '
 
 all_tests="$wrapper_tests $list_ops_tests"
