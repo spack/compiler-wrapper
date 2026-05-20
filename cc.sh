@@ -34,17 +34,6 @@ unset IFS
 # NOTE: Depending on your editor this may look empty, but it is not.
 readonly lsep=''
 
-# This is an array of environment variables that need to be set before
-# the script runs. They are set by routines in spack.build_environment
-# as part of the package installation process.
-readonly params="\
-SPACK_COMPILER_WRAPPER_PATH
-SPACK_DEBUG_LOG_DIR
-SPACK_DEBUG_LOG_ID
-SPACK_SHORT_SPEC
-SPACK_SYSTEM_DIRS
-SPACK_MANAGED_DIRS"
-
 # Optional parameters that aren't required to be set
 
 # Boolean (true/false/custom) if we want to add debug flags
@@ -232,12 +221,15 @@ case "$*" in
         ;;
 esac
 
-# ensure required variables are set
-for param in $params; do
-    if eval "test -z \"\${${param}:-}\""; then
-        die "Spack compiler must be run from Spack! Input '$param' is missing."
-    fi
-done
+# Ensure required variables are set
+_msg="Error: the compiler wrapper must be invoked from Spack"
+: "${SPACK_COMPILER_WRAPPER_PATH:?$_msg}"
+: "${SPACK_DEBUG_LOG_DIR:?$_msg}"
+: "${SPACK_DEBUG_LOG_ID:?$_msg}"
+: "${SPACK_SHORT_SPEC:?$_msg}"
+: "${SPACK_SYSTEM_DIRS:?$_msg}"
+: "${SPACK_MANAGED_DIRS:?$_msg}"
+unset _msg
 
 # eval this because SPACK_MANAGED_DIRS and SPACK_SYSTEM_DIRS are inputs we don't wanna loop over.
 # moving the eval inside the function would eval it every call.
