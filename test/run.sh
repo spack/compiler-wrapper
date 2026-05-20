@@ -1303,8 +1303,8 @@ test_add_debug_flags_validation() {
         fail "add_debug_flags_invalid: expected non-zero exit, got 0"
     fi
     case "$_out" in
-        *SPACK_ADD_DEBUG_FLAGS*) ;;
-        *) fail "add_debug_flags_invalid: expected 'SPACK_ADD_DEBUG_FLAGS' in: $_out" ;;
+        *"SPACK_ADD_DEBUG_FLAGS must be"*) ;;
+        *) fail "add_debug_flags_invalid: expected 'SPACK_ADD_DEBUG_FLAGS must be' in: $_out" ;;
     esac
     unset SPACK_ADD_DEBUG_FLAGS
 }
