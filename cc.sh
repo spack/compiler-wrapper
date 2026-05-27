@@ -342,7 +342,13 @@ case "$command" in
     ld|ld.gold|ld.lld)
         mode=ld
         if [ -z "$SPACK_CC_RPATH_ARG" ]; then
-            comp="CXX"
+	        if [ -n "$SPACK_CXX_RPATH_ARG" ]; then
+                comp="CXX"
+	        elif [ -n "$SPACK_FC_RPATH_ARG" ]; then
+                comp="FC"
+            else
+                die "Cannot configure linker"
+	        fi
         fi
         ;;
     *)
