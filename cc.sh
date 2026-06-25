@@ -360,7 +360,7 @@ esac
 # In vcheck mode, nothing is added in terms of extra search paths or
 # libraries.
 if [ -z "$mode" ] || [ "$mode" = ld ]; then
-    for arg in "$@"; do
+    for arg; do
         case $arg in
             -v|-V|--version|-dumpversion)
                 mode=vcheck
@@ -373,7 +373,7 @@ fi
 # Finish setting up the mode.
 if [ -z "$mode" ]; then
     mode=ccld
-    for arg in "$@"; do
+    for arg; do
         case $arg in
             -E) mode=cpp; break ;;
             -S) mode=as; break ;;
@@ -438,7 +438,7 @@ export PATH="$new_dirs"
 if [ "$mode" = vcheck ]; then
     full_command_list="$command"
     extend full_command_list vcheck_flags
-    for arg in "$@"; do
+    for arg; do
         append full_command_list "$arg"
     done
     execute
@@ -450,7 +450,7 @@ fi
 add_rpaths=true
 if [ "$mode" = ld ] || [ "$mode" = ccld ]; then
     if [ "${SPACK_SHORT_SPEC#*darwin}" != "${SPACK_SHORT_SPEC}" ]; then
-        for arg in "$@"; do
+        for arg; do
             if [ "$arg" = "-r" ]; then
                 if [ "$mode" = ld ] || [ "$mode" = ccld ]; then
                     add_rpaths=false
