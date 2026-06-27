@@ -797,6 +797,15 @@ elif [ "$SPACK_ADD_DEBUG_FLAGS" = "custom" ]; then
     extend flags_list SPACK_DEBUG_FLAGS
 fi
 
+# -ffile-prefix-map=<staging>=. injection for build reproducibility
+case "$mode" in
+    cpp|as|cc|ccld)
+        if [ -n "${SPACK_DEBUG_PREFIX_MAP:-}" ]; then
+            append flags_list "-ffile-prefix-map=${SPACK_DEBUG_PREFIX_MAP}=."
+        fi
+        ;;
+esac
+
 spack_flags_list=""
 
 # Fortran flags come before CPPFLAGS

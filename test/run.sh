@@ -197,7 +197,7 @@ SPACK_COMPILER_EXTRA_RPATHS SPACK_COMPILER_IMPLICIT_RPATHS
 SPACK_CC_HAS_FRANDOM_SEED SPACK_CXX_HAS_FRANDOM_SEED
 SPACK_FC_HAS_FRANDOM_SEED SPACK_F77_HAS_FRANDOM_SEED
 SPACK_CCACHE_BINARY SPACK_TEST_COMMAND SPACK_ADD_DEBUG_FLAGS SPACK_DEBUG_FLAGS
-SPACK_DEBUG
+SPACK_DEBUG SPACK_DEBUG_PREFIX_MAP
 '
 
 wrapper_environment() {
@@ -1480,6 +1480,52 @@ test_x_hip_vcheck() {
 }
 
 # ---------------------------------------------------------------------------
+# SPACK_DEBUG_PREFIX_MAP injection
+# ---------------------------------------------------------------------------
+
+test_debug_prefix_map() {
+    wrapper_environment
+
+    # When SPACK_DEBUG_PREFIX_MAP is unset, -ffile-prefix-map must NOT appear.
+    unset SPACK_DEBUG_PREFIX_MAP
+    _out=$(dump_args cc '')
+    expect_not_contains debug_prefix_map_absent "$_out" \
+        '-ffile-prefix-map=/some/stage/path=.'
+
+    # When set, -ffile-prefix-map=<value>=. must appear for C.
+    SPACK_DEBUG_PREFIX_MAP='/some/stage/path'
+    export SPACK_DEBUG_PREFIX_MAP
+    _out=$(dump_args cc '')
+    expect_contains debug_prefix_map_cc "$_out" \
+        '-ffile-prefix-map=/some/stage/path=.'
+
+    # Must appear for C++ wrapper too.
+    _out=$(dump_args c++ '')
+    expect_contains debug_prefix_map_cxx "$_out" \
+        '-ffile-prefix-map=/some/stage/path=.'
+
+    # Must appear for Fortran wrapper too.
+    _out=$(dump_args fc '')
+    expect_contains debug_prefix_map_fc "$_out" \
+        '-ffile-prefix-map=/some/stage/path=.'
+
+    # Must NOT appear in vcheck mode
+    _out=$(dump_args cc '--version')
+    expect_not_contains debug_prefix_map_vcheck "$_out" \
+        '-ffile-prefix-map=/some/stage/path=.'
+
+    # Must NOT appear in ld mode
+    SPACK_DEBUG_PREFIX_MAP='/some/stage/path'
+    export SPACK_DEBUG_PREFIX_MAP
+    _out=$(dump_args ld '')
+    expect_not_contains debug_prefix_map_ld "$_out" \
+        '-ffile-prefix-map=/some/stage/path=.'
+
+    unset SPACK_DEBUG_PREFIX_MAP
+
+}
+
+# ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
 
@@ -1537,6 +1583,7 @@ test_cpp_stays_cpp_with_x
 test_x_is_not_a_language_for_ld
 test_hip_always_flags
 test_x_hip_vcheck
+test_debug_prefix_map
 '
 
 all_tests="$wrapper_tests $list_ops_tests"
