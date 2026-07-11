@@ -229,6 +229,8 @@ _msg="Error: the compiler wrapper must be invoked from Spack"
 : "${SPACK_SHORT_SPEC:?$_msg}"
 : "${SPACK_SYSTEM_DIRS:?$_msg}"
 : "${SPACK_MANAGED_DIRS:?$_msg}"
+: "${SPACK_PREFIX_MAP:?$_msg}"
+: "${SPACK_BUILD_PREFIX_MAP:?$_msg}"
 unset _msg
 
 # eval this because SPACK_MANAGED_DIRS and SPACK_SYSTEM_DIRS are inputs we don't wanna loop over.
@@ -800,8 +802,9 @@ fi
 # -ffile-prefix-map=<staging>=. injection for build reproducibility
 case "$mode" in
     cpp|as|cc|ccld)
-        if [ -n "${SPACK_DEBUG_PREFIX_MAP:-}" ]; then
-            append flags_list "-ffile-prefix-map=${SPACK_DEBUG_PREFIX_MAP}=."
+        append flags_list "-ffile-prefix-map=${SPACK_PREFIX_MAP}=."
+        if [ "$SPACK_BUILD_PREFIX_MAP" != "$SPACK_PREFIX_MAP" ]; then
+            append flags_list "-ffile-prefix-map=${SPACK_BUILD_PREFIX_MAP}=."
         fi
         ;;
 esac
