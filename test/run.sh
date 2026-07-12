@@ -400,7 +400,7 @@ DISABLE_NEW_DTAGS='--disable-new-dtags'
 
 PREFIX_MAP_FLAGS=$(cat <<'EOF'
 -ffile-prefix-map=/spack-test-stage/spack-src=.
--ffile-prefix-map=/spack-test-stage/spack-build-abc1234=.
+-ffile-prefix-map=/spack-test-stage/spack-build-abc1234=./build
 EOF
 )
 
@@ -1536,35 +1536,35 @@ test_prefix_map_injected() {
     expect_contains debug_prefix_map_cc "$_out" \
         '-ffile-prefix-map=/spack-test-stage/spack-src=.'
     expect_contains debug_build_prefix_map_cc "$_out" \
-        '-ffile-prefix-map=/spack-test-stage/spack-build-abc1234=.'
+        '-ffile-prefix-map=/spack-test-stage/spack-build-abc1234=./build'
 
     # Both must appear for C++.
     _out=$(dump_args c++ '')
     expect_contains debug_prefix_map_cxx "$_out" \
         '-ffile-prefix-map=/spack-test-stage/spack-src=.'
     expect_contains debug_build_prefix_map_cxx "$_out" \
-        '-ffile-prefix-map=/spack-test-stage/spack-build-abc1234=.'
+        '-ffile-prefix-map=/spack-test-stage/spack-build-abc1234=./build'
 
     # Both must appear for Fortran.
     _out=$(dump_args fc '')
     expect_contains debug_prefix_map_fc "$_out" \
         '-ffile-prefix-map=/spack-test-stage/spack-src=.'
     expect_contains debug_build_prefix_map_fc "$_out" \
-        '-ffile-prefix-map=/spack-test-stage/spack-build-abc1234=.'
+        '-ffile-prefix-map=/spack-test-stage/spack-build-abc1234=./build'
 
     # Neither must appear in vcheck mode.
     _out=$(dump_args cc '--version')
     expect_not_contains debug_prefix_map_vcheck "$_out" \
         '-ffile-prefix-map=/spack-test-stage/spack-src=.'
     expect_not_contains debug_build_prefix_map_vcheck "$_out" \
-        '-ffile-prefix-map=/spack-test-stage/spack-build-abc1234=.'
+        '-ffile-prefix-map=/spack-test-stage/spack-build-abc1234=./build'
 
     # Neither must appear in plain ld mode.
     _out=$(dump_args ld '')
     expect_not_contains debug_prefix_map_ld "$_out" \
         '-ffile-prefix-map=/spack-test-stage/spack-src=.'
     expect_not_contains debug_build_prefix_map_ld "$_out" \
-        '-ffile-prefix-map=/spack-test-stage/spack-build-abc1234=.'
+        '-ffile-prefix-map=/spack-test-stage/spack-build-abc1234=./build'
 }
 
 test_prefix_map_dedup() {

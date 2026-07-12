@@ -804,7 +804,7 @@ case "$mode" in
     cpp|as|cc|ccld)
         append flags_list "-ffile-prefix-map=${SPACK_PREFIX_MAP}=."
         if [ "$SPACK_BUILD_PREFIX_MAP" != "$SPACK_PREFIX_MAP" ]; then
-            append flags_list "-ffile-prefix-map=${SPACK_BUILD_PREFIX_MAP}=."
+            append flags_list "-ffile-prefix-map=${SPACK_BUILD_PREFIX_MAP}=./build"
         fi
         ;;
 esac
