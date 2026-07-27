@@ -890,6 +890,20 @@ if [ "$mode" = ld ] || [ "$mode" = ccld ]; then
     fi
 fi
 
+# Enable GNU build-id notes for debuginfo auto-discovery (ELF platforms only;
+# Darwin's linker doesn't understand --build-id and macOS builds use dsymutil
+# / dSYM bundles for a comparable purpose instead).
+if [ "$mode" = ld ] || [ "$mode" = ccld ]; then
+    if [ "${SPACK_SHORT_SPEC#*darwin}" = "${SPACK_SHORT_SPEC}" ]; then
+        case "$mode" in
+            ld)
+                append flags_list "--build-id" ;;
+            ccld)
+                append flags_list "-Wl,--build-id" ;;
+        esac
+    fi
+fi
+
 if [ "$mode" = ccld ] || [ "$mode" = ld ]; then
     if [ "$add_rpaths" != "false" ]; then
         # Append RPATH directories. Note that in the case of the
