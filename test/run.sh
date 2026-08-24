@@ -397,6 +397,8 @@ LHEADERPAD='-Wl,-headerpad_max_install_names'
 HEADERPAD='-headerpad_max_install_names'
 DISABLE_NEW_DTAGS_WL='-Wl,--disable-new-dtags'
 DISABLE_NEW_DTAGS='--disable-new-dtags'
+BUILD_ID_WL='-Wl,--build-id'
+BUILD_ID='--build-id'
 
 PREFIX_MAP_FLAGS=$(cat <<'EOF'
 -ffile-prefix-map=/spack-test-stage/spack-src=.
@@ -406,6 +408,7 @@ EOF
 
 COMMON_COMPILE_ARGS=$(concat \
     "$PREFIX_MAP_FLAGS" \
+    "$BUILD_ID_WL" \
     "$TEST_INCLUDE_PATHS" \
     "$TEST_LIBRARY_PATHS" \
     "$DISABLE_NEW_DTAGS_WL" \
@@ -510,6 +513,7 @@ EOF
 )
     _exp=$(cat <<'EOF'
 ld
+--build-id
 --disable-new-dtags
 foo.o
 bar.o
@@ -532,7 +536,7 @@ foo
 -rpath
 EOF
 )
-    _exp=$(concat "$REAL_CC" "$TARGET_ARGS" "$PREFIX_MAP_FLAGS" "$DISABLE_NEW_DTAGS_WL" "$(cat <<'EOF'
+    _exp=$(concat "$REAL_CC" "$TARGET_ARGS" "$PREFIX_MAP_FLAGS" "$BUILD_ID_WL" "$DISABLE_NEW_DTAGS_WL" "$(cat <<'EOF'
 foo.o
 bar.o
 baz.o
@@ -554,7 +558,7 @@ foo
 -Wl,-rpath
 EOF
 )
-    _exp=$(concat "$REAL_CC" "$TARGET_ARGS" "$PREFIX_MAP_FLAGS" "$DISABLE_NEW_DTAGS_WL" "$(cat <<'EOF'
+    _exp=$(concat "$REAL_CC" "$TARGET_ARGS" "$PREFIX_MAP_FLAGS" "$BUILD_ID_WL" "$DISABLE_NEW_DTAGS_WL" "$(cat <<'EOF'
 foo.o
 bar.o
 baz.o
@@ -571,7 +575,7 @@ EOF
 -Wl,/c
 EOF
 )
-    _exp=$(concat "$REAL_CC" "$TARGET_ARGS" "$PREFIX_MAP_FLAGS" "$DISABLE_NEW_DTAGS_WL" "$(cat <<'EOF'
+    _exp=$(concat "$REAL_CC" "$TARGET_ARGS" "$PREFIX_MAP_FLAGS" "$BUILD_ID_WL" "$DISABLE_NEW_DTAGS_WL" "$(cat <<'EOF'
 -Wl,-rpath,/a
 -Wl,-rpath,/b
 -Wl,-rpath,/c
@@ -585,12 +589,12 @@ EOF
 -Wl,--rpath=
 EOF
 )
-    _exp=$(concat "$REAL_CC" "$TARGET_ARGS" "$PREFIX_MAP_FLAGS" "$DISABLE_NEW_DTAGS_WL" "-Wl,-rpath,/a")
+    _exp=$(concat "$REAL_CC" "$TARGET_ARGS" "$PREFIX_MAP_FLAGS" "$BUILD_ID_WL" "$DISABLE_NEW_DTAGS_WL" "-Wl,-rpath,/a")
     expect_args Wl_parsing_missing cc "$_args" "$_exp"
 
     # Wl_parsing_NAG_is_ignored
     _args='-Wl,-Wl,,x,,y,,z'
-    _exp=$(concat "$REAL_CC" "$TARGET_ARGS_FC" "$PREFIX_MAP_FLAGS" "$DISABLE_NEW_DTAGS_WL" "-Wl,-Wl,,x,,y,,z")
+    _exp=$(concat "$REAL_CC" "$TARGET_ARGS_FC" "$PREFIX_MAP_FLAGS" "$BUILD_ID_WL" "$DISABLE_NEW_DTAGS_WL" "-Wl,-Wl,,x,,y,,z")
     expect_args Wl_parsing_NAG fc "$_args" "$_exp"
 
     # Xlinker_parsing
@@ -607,7 +611,7 @@ EOF
 -Xlinker
 EOF
 )
-    _exp=$(concat "$REAL_CC" "$TARGET_ARGS" "$PREFIX_MAP_FLAGS" "$DISABLE_NEW_DTAGS_WL" "$(cat <<'EOF'
+    _exp=$(concat "$REAL_CC" "$TARGET_ARGS" "$PREFIX_MAP_FLAGS" "$BUILD_ID_WL" "$DISABLE_NEW_DTAGS_WL" "$(cat <<'EOF'
 -Wl,-rpath,/a
 -Wl,-rpath,/b
 -O3
@@ -625,7 +629,7 @@ EOF
 -g
 EOF
 )
-    _exp=$(concat "$REAL_CC" "$TARGET_ARGS" "$PREFIX_MAP_FLAGS" "$DISABLE_NEW_DTAGS_WL" "$(cat <<'EOF'
+    _exp=$(concat "$REAL_CC" "$TARGET_ARGS" "$PREFIX_MAP_FLAGS" "$BUILD_ID_WL" "$DISABLE_NEW_DTAGS_WL" "$(cat <<'EOF'
 -O3
 -g
 -Wl,-rpath
@@ -641,7 +645,7 @@ EOF
 -g
 EOF
 )
-    _exp=$(concat "$REAL_CC" "$TARGET_ARGS" "$PREFIX_MAP_FLAGS" "$DISABLE_NEW_DTAGS_WL" "$(cat <<'EOF'
+    _exp=$(concat "$REAL_CC" "$TARGET_ARGS" "$PREFIX_MAP_FLAGS" "$BUILD_ID_WL" "$DISABLE_NEW_DTAGS_WL" "$(cat <<'EOF'
 -O3
 -g
 -Xlinker
@@ -656,14 +660,14 @@ EOF
 
     # dep_include
     SPACK_INCLUDE_DIRS=x; export SPACK_INCLUDE_DIRS
-    _exp=$(concat "$REAL_CC" "$TARGET_ARGS" "$PREFIX_MAP_FLAGS" "$TEST_INCLUDE_PATHS" "-Ix" \
+    _exp=$(concat "$REAL_CC" "$TARGET_ARGS" "$PREFIX_MAP_FLAGS" "$BUILD_ID_WL" "$TEST_INCLUDE_PATHS" "-Ix" \
         "$TEST_LIBRARY_PATHS" "$DISABLE_NEW_DTAGS_WL" "$TEST_WL_RPATHS" "$TEST_ARGS_NO_PATHS")
     expect_args dep_include cc "$TEST_ARGS" "$_exp"
     SPACK_INCLUDE_DIRS=''; export SPACK_INCLUDE_DIRS
 
     # dep_lib
     SPACK_LINK_DIRS=x; SPACK_RPATH_DIRS=x; export SPACK_LINK_DIRS SPACK_RPATH_DIRS
-    _exp=$(concat "$REAL_CC" "$TARGET_ARGS" "$PREFIX_MAP_FLAGS" "$TEST_INCLUDE_PATHS" \
+    _exp=$(concat "$REAL_CC" "$TARGET_ARGS" "$PREFIX_MAP_FLAGS" "$BUILD_ID_WL" "$TEST_INCLUDE_PATHS" \
         "$TEST_LIBRARY_PATHS" "-Lx" "$DISABLE_NEW_DTAGS_WL" \
         "$TEST_WL_RPATHS" "-Wl,-rpath,x" "$TEST_ARGS_NO_PATHS")
     expect_args dep_lib cc "$TEST_ARGS" "$_exp"
@@ -671,7 +675,7 @@ EOF
 
     # dep_lib_no_rpath
     SPACK_LINK_DIRS=x; export SPACK_LINK_DIRS
-    _exp=$(concat "$REAL_CC" "$TARGET_ARGS" "$PREFIX_MAP_FLAGS" "$TEST_INCLUDE_PATHS" \
+    _exp=$(concat "$REAL_CC" "$TARGET_ARGS" "$PREFIX_MAP_FLAGS" "$BUILD_ID_WL" "$TEST_INCLUDE_PATHS" \
         "$TEST_LIBRARY_PATHS" "-Lx" "$DISABLE_NEW_DTAGS_WL" \
         "$TEST_WL_RPATHS" "$TEST_ARGS_NO_PATHS")
     expect_args dep_lib_no_rpath cc "$TEST_ARGS" "$_exp"
@@ -679,7 +683,7 @@ EOF
 
     # dep_lib_no_lib
     SPACK_RPATH_DIRS=x; export SPACK_RPATH_DIRS
-    _exp=$(concat "$REAL_CC" "$TARGET_ARGS" "$PREFIX_MAP_FLAGS" "$TEST_INCLUDE_PATHS" \
+    _exp=$(concat "$REAL_CC" "$TARGET_ARGS" "$PREFIX_MAP_FLAGS" "$BUILD_ID_WL" "$TEST_INCLUDE_PATHS" \
         "$TEST_LIBRARY_PATHS" "$DISABLE_NEW_DTAGS_WL" \
         "$TEST_WL_RPATHS" "-Wl,-rpath,x" "$TEST_ARGS_NO_PATHS")
     expect_args dep_lib_no_lib cc "$TEST_ARGS" "$_exp"
@@ -691,7 +695,7 @@ EOF
     SPACK_LINK_DIRS=xlib:ylib:zlib
     export SPACK_INCLUDE_DIRS SPACK_RPATH_DIRS SPACK_LINK_DIRS
 
-    _exp=$(concat "$REAL_CC" "$TARGET_ARGS" "$PREFIX_MAP_FLAGS" "$TEST_INCLUDE_PATHS" \
+    _exp=$(concat "$REAL_CC" "$TARGET_ARGS" "$PREFIX_MAP_FLAGS" "$BUILD_ID_WL" "$TEST_INCLUDE_PATHS" \
         "$(printf -- '-Ixinc\n-Iyinc\n-Izinc')" \
         "$TEST_LIBRARY_PATHS" \
         "$(printf -- '-Lxlib\n-Lylib\n-Lzlib')" \
@@ -704,7 +708,7 @@ EOF
     _args="$TEST_ARGS
 -isystem
 fooinc"
-    _exp=$(concat "$REAL_CC" "$TARGET_ARGS" "$PREFIX_MAP_FLAGS" "$TEST_INCLUDE_PATHS" \
+    _exp=$(concat "$REAL_CC" "$TARGET_ARGS" "$PREFIX_MAP_FLAGS" "$BUILD_ID_WL" "$TEST_INCLUDE_PATHS" \
         "$(printf -- '-isystem\nfooinc\n-isystem\nxinc\n-isystem\nyinc\n-isystem\nzinc')" \
         "$TEST_LIBRARY_PATHS" \
         "$(printf -- '-Lxlib\n-Lylib\n-Lzlib')" \
@@ -732,7 +736,7 @@ EOF
 )
     _args="$_sys
 $TEST_ARGS"
-    _exp=$(concat "$REAL_CC" "$TARGET_ARGS" "$PREFIX_MAP_FLAGS" "$TEST_INCLUDE_PATHS" \
+    _exp=$(concat "$REAL_CC" "$TARGET_ARGS" "$PREFIX_MAP_FLAGS" "$BUILD_ID_WL" "$TEST_INCLUDE_PATHS" \
         "$(printf -- '-Ixinc\n-Iyinc\n-Izinc')" \
         "$(printf -- '-I/usr/include\n-I/usr/local/include')" \
         "$TEST_LIBRARY_PATHS" \
@@ -757,7 +761,7 @@ EOF
 )
     _args="$_sys
 $TEST_ARGS"
-    _exp=$(concat "$REAL_CC" "$TARGET_ARGS" "$PREFIX_MAP_FLAGS" "$TEST_INCLUDE_PATHS" \
+    _exp=$(concat "$REAL_CC" "$TARGET_ARGS" "$PREFIX_MAP_FLAGS" "$BUILD_ID_WL" "$TEST_INCLUDE_PATHS" \
         "$(printf -- '-isystem\nxinc\n-isystem\nyinc\n-isystem\nzinc')" \
         "$(printf -- '-isystem\n/usr/include\n-isystem\n/usr/local/include')" \
         "$TEST_LIBRARY_PATHS" \
@@ -770,7 +774,7 @@ $TEST_ARGS"
     expect_args ccld_with_system_dirs_isystem cc "$_args" "$_exp"
 
     # ld_deps
-    _exp=$(concat "ld" "$TEST_INCLUDE_PATHS" "$TEST_LIBRARY_PATHS" \
+    _exp=$(concat "ld" "$BUILD_ID" "$TEST_INCLUDE_PATHS" "$TEST_LIBRARY_PATHS" \
         "$(printf -- '-Lxlib\n-Lylib\n-Lzlib')" \
         "$DISABLE_NEW_DTAGS" "$TEST_RPATHS" \
         "$(printf -- '-rpath\nxlib\n-rpath\nylib\n-rpath\nzlib')" \
@@ -780,7 +784,7 @@ $TEST_ARGS"
     # ld_deps_no_rpath
     unset SPACK_RPATH_DIRS
     SPACK_RPATH_DIRS=''; export SPACK_RPATH_DIRS
-    _exp=$(concat "ld" "$TEST_INCLUDE_PATHS" "$TEST_LIBRARY_PATHS" \
+    _exp=$(concat "ld" "$BUILD_ID" "$TEST_INCLUDE_PATHS" "$TEST_LIBRARY_PATHS" \
         "$(printf -- '-Lxlib\n-Lylib\n-Lzlib')" \
         "$DISABLE_NEW_DTAGS" "$TEST_RPATHS" \
         "$TEST_ARGS_NO_PATHS")
@@ -789,7 +793,7 @@ $TEST_ARGS"
     # ld_deps_no_link
     SPACK_RPATH_DIRS=xlib:ylib:zlib; export SPACK_RPATH_DIRS
     SPACK_LINK_DIRS=''; export SPACK_LINK_DIRS
-    _exp=$(concat "ld" "$TEST_INCLUDE_PATHS" "$TEST_LIBRARY_PATHS" \
+    _exp=$(concat "ld" "$BUILD_ID" "$TEST_INCLUDE_PATHS" "$TEST_LIBRARY_PATHS" \
         "$DISABLE_NEW_DTAGS" "$TEST_RPATHS" \
         "$(printf -- '-rpath\nxlib\n-rpath\nylib\n-rpath\nzlib')" \
         "$TEST_ARGS_NO_PATHS")
@@ -801,7 +805,7 @@ test_expected_args_with_flags() {
     wrapper_flags
 
     # ld_flags
-    _exp=$(concat "ld" "$TEST_INCLUDE_PATHS" "$TEST_LIBRARY_PATHS" \
+    _exp=$(concat "ld" "$BUILD_ID" "$TEST_INCLUDE_PATHS" "$TEST_LIBRARY_PATHS" \
         "$DISABLE_NEW_DTAGS" "$TEST_RPATHS" "$TEST_ARGS_NO_PATHS" "$SPACK_LDLIBS_LINES")
     expect_args ld_flags ld "$TEST_ARGS" "$_exp"
 
@@ -811,21 +815,21 @@ test_expected_args_with_flags() {
     expect_args cpp_flags cpp "$TEST_ARGS" "$_exp"
 
     # cc_flags
-    _exp=$(concat "$REAL_CC" "$TARGET_ARGS" "$PREFIX_MAP_FLAGS" "$TEST_INCLUDE_PATHS" "-Lfoo" \
+    _exp=$(concat "$REAL_CC" "$TARGET_ARGS" "$PREFIX_MAP_FLAGS" "$BUILD_ID_WL" "$TEST_INCLUDE_PATHS" "-Lfoo" \
         "$TEST_LIBRARY_PATHS" "$DISABLE_NEW_DTAGS_WL" "$TEST_WL_RPATHS" \
         "$TEST_ARGS_NO_PATHS" "$SPACK_CPPFLAGS_LINES" "$SPACK_CFLAGS_LINES" \
         "-Wl,--gc-sections" "$SPACK_LDLIBS_LINES")
     expect_args cc_flags cc "$TEST_ARGS" "$_exp"
 
     # cxx_flags (note: -Werror is filtered by SPACK_COMPILER_FLAGS_REPLACE)
-    _exp=$(concat "$REAL_CC" "$TARGET_ARGS" "$PREFIX_MAP_FLAGS" "$TEST_INCLUDE_PATHS" "-Lfoo" \
+    _exp=$(concat "$REAL_CC" "$TARGET_ARGS" "$PREFIX_MAP_FLAGS" "$BUILD_ID_WL" "$TEST_INCLUDE_PATHS" "-Lfoo" \
         "$TEST_LIBRARY_PATHS" "$DISABLE_NEW_DTAGS_WL" "$TEST_WL_RPATHS" \
         "$TEST_ARGS_NO_PATHS" "$SPACK_CPPFLAGS_LINES" \
         "-Wl,--gc-sections" "$SPACK_LDLIBS_LINES")
     expect_args cxx_flags c++ "$TEST_ARGS" "$_exp"
 
     # fc_flags
-    _exp=$(concat "$REAL_CC" "$TARGET_ARGS_FC" "$PREFIX_MAP_FLAGS" "$TEST_INCLUDE_PATHS" "-Lfoo" \
+    _exp=$(concat "$REAL_CC" "$TARGET_ARGS_FC" "$PREFIX_MAP_FLAGS" "$BUILD_ID_WL" "$TEST_INCLUDE_PATHS" "-Lfoo" \
         "$TEST_LIBRARY_PATHS" "$DISABLE_NEW_DTAGS_WL" "$TEST_WL_RPATHS" \
         "$TEST_ARGS_NO_PATHS" "$SPACK_FFLAGS_LINES" "$SPACK_CPPFLAGS_LINES" \
         "-Wl,--gc-sections" "$SPACK_LDLIBS_LINES")
@@ -882,7 +886,7 @@ test_ld_deps_partial() {
     SPACK_SHORT_SPEC='foo@1.2=linux-x86_64'; export SPACK_SHORT_SPEC
     _args="-r
 $TEST_ARGS"
-    _exp=$(concat "ld" "$TEST_INCLUDE_PATHS" "$TEST_LIBRARY_PATHS" "-Lxlib" \
+    _exp=$(concat "ld" "$BUILD_ID" "$TEST_INCLUDE_PATHS" "$TEST_LIBRARY_PATHS" "-Lxlib" \
         "$DISABLE_NEW_DTAGS" "$TEST_RPATHS" "-rpath" "xlib" "-r" "$TEST_ARGS_NO_PATHS")
     expect_args ld_deps_partial_linux ld "$_args" "$_exp"
 
