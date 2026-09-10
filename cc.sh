@@ -229,8 +229,6 @@ _msg="Error: the compiler wrapper must be invoked from Spack"
 : "${SPACK_SHORT_SPEC:?$_msg}"
 : "${SPACK_SYSTEM_DIRS:?$_msg}"
 : "${SPACK_MANAGED_DIRS:?$_msg}"
-: "${SPACK_PREFIX_MAP:?$_msg}"
-: "${SPACK_BUILD_PREFIX_MAP:?$_msg}"
 unset _msg
 
 # eval this because SPACK_MANAGED_DIRS and SPACK_SYSTEM_DIRS are inputs we don't wanna loop over.
@@ -799,12 +797,15 @@ elif [ "$SPACK_ADD_DEBUG_FLAGS" = "custom" ]; then
     extend flags_list SPACK_DEBUG_FLAGS
 fi
 
-# -ffile-prefix-map=<staging>=. injection for build reproducibility
+# Inject compiler-supplied file-prefix-remapping flag(s)
 case "$mode" in
     cpp|as|cc|ccld)
-        append flags_list "-ffile-prefix-map=${SPACK_PREFIX_MAP}=."
-        if [ "$SPACK_BUILD_PREFIX_MAP" != "$SPACK_PREFIX_MAP" ]; then
-            append flags_list "-ffile-prefix-map=${SPACK_BUILD_PREFIX_MAP}=./build"
+        if [ -n "${SPACK_PREFIX_MAP_ARGS:-}" ]; then
+            append flags_list "$SPACK_PREFIX_MAP_ARGS"
+        fi
+        if [ -n "${SPACK_BUILD_PREFIX_MAP_ARGS:-}" ] && \
+           [ "$SPACK_BUILD_PREFIX_MAP_ARGS" != "${SPACK_PREFIX_MAP_ARGS:-}" ]; then
+            append flags_list "$SPACK_BUILD_PREFIX_MAP_ARGS"
         fi
         ;;
 esac
