@@ -209,6 +209,7 @@ wrapper_environment() {
     SPACK_PREFIX=/spack-test-prefix
     SPACK_PREFIX_MAP_ARGS='-ffile-prefix-map=/spack-test-stage/spack-src=.'
     SPACK_BUILD_PREFIX_MAP_ARGS='-ffile-prefix-map=/spack-test-stage/spack-build-abc1234=./build'
+    SPACK_BUILD_ID_ARGS='--build-id'
     # shellcheck disable=SC2209  # literal string "test", not the command
     SPACK_COMPILER_WRAPPER_PATH=test
     SPACK_DEBUG_LOG_DIR=.
@@ -236,7 +237,7 @@ wrapper_environment() {
 
     # shellcheck disable=SC2090
     export SPACK_CC SPACK_CXX SPACK_FC SPACK_F77 SPACK_HIPCXX SPACK_PREFIX \
-        SPACK_PREFIX_MAP_ARGS SPACK_BUILD_PREFIX_MAP_ARGS \
+        SPACK_PREFIX_MAP_ARGS SPACK_BUILD_PREFIX_MAP_ARGS SPACK_BUILD_ID_ARGS \
         SPACK_COMPILER_WRAPPER_PATH SPACK_DEBUG_LOG_DIR SPACK_DEBUG_LOG_ID \
         SPACK_SHORT_SPEC SPACK_SYSTEM_DIRS SPACK_MANAGED_DIRS \
         SPACK_CC_RPATH_ARG SPACK_CXX_RPATH_ARG SPACK_F77_RPATH_ARG SPACK_FC_RPATH_ARG \
@@ -891,6 +892,7 @@ $TEST_ARGS"
     expect_args ld_deps_partial_linux ld "$_args" "$_exp"
 
     SPACK_SHORT_SPEC='foo@1.2=darwin-x86_64'; export SPACK_SHORT_SPEC
+    unset SPACK_BUILD_ID_ARGS
     _exp=$(concat "ld" "$HEADERPAD" "$TEST_INCLUDE_PATHS" "$TEST_LIBRARY_PATHS" "-Lxlib" \
         "$DISABLE_NEW_DTAGS" "$TEST_RPATHS" "-r" "$TEST_ARGS_NO_PATHS")
     expect_args ld_deps_partial_darwin ld "$_args" "$_exp"
@@ -905,6 +907,7 @@ test_ccache_prepend_for_cc() {
     expect_args ccache_prepend_linux cc "$TEST_ARGS" "$_exp"
 
     SPACK_SHORT_SPEC='foo@1.2=darwin-x86_64'; export SPACK_SHORT_SPEC
+    unset SPACK_BUILD_ID_ARGS
     _exp=$(concat "ccache" "$REAL_CC" "$TARGET_ARGS" "$PREFIX_MAP_FLAGS" "$LHEADERPAD" \
         "$TEST_INCLUDE_PATHS" "$TEST_LIBRARY_PATHS" "$DISABLE_NEW_DTAGS_WL" \
         "$TEST_WL_RPATHS" "$TEST_ARGS_NO_PATHS")
@@ -919,6 +922,7 @@ test_no_ccache_prepend_for_fc() {
     expect_args no_ccache_fc_linux fc "$TEST_ARGS" "$_exp"
 
     SPACK_SHORT_SPEC='foo@1.2=darwin-x86_64'; export SPACK_SHORT_SPEC
+    unset SPACK_BUILD_ID_ARGS
     _exp=$(concat "$REAL_CC" "$TARGET_ARGS_FC" "$PREFIX_MAP_FLAGS" "$LHEADERPAD" \
         "$TEST_INCLUDE_PATHS" "$TEST_LIBRARY_PATHS" "$DISABLE_NEW_DTAGS_WL" \
         "$TEST_WL_RPATHS" "$TEST_ARGS_NO_PATHS")     
@@ -1498,7 +1502,7 @@ test_x_hip_vcheck() {
 }
 
 # ---------------------------------------------------------------------------
-# SPACK_PREFIX_MAP / SPACK_BUILD_PREFIX_MAP injection
+# SPACK_PREFIX_MAP / SPACK_BUILD_PREFIX_MAP / BUILD-ID injection
 # ---------------------------------------------------------------------------
 
 test_prefix_map_injected() {
@@ -1569,6 +1573,21 @@ test_prefix_map_absent_when_unsupported() {
     fi
 }
 
+test_build_id_absent_when_unsupported() {
+    wrapper_environment
+    unset SPACK_BUILD_ID_ARGS
+
+    _out=$(dump_args ld '')
+    if printf '%s\n' "$_out" | grep -qF -- '--build-id'; then
+        fail "build_id_absent_when_unsupported: flag emitted despite unset var"
+    fi
+
+    _out=$(dump_args cc '')
+    if printf '%s\n' "$_out" | grep -qF -- '--build-id'; then
+        fail "build_id_absent_when_unsupported: flag emitted in ccld mode despite unset var"
+    fi
+}
+
 # ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
@@ -1630,6 +1649,7 @@ test_x_hip_vcheck
 test_prefix_map_injected
 test_prefix_map_dedup
 test_prefix_map_absent_when_unsupported
+test_build_id_absent_when_unsupported
 '
 
 all_tests="$wrapper_tests $list_ops_tests"
