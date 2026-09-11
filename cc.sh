@@ -891,16 +891,16 @@ if [ "$mode" = ld ] || [ "$mode" = ccld ]; then
     fi
 fi
 
-# Enable GNU build-id notes for debuginfo auto-discovery (ELF platforms only;
-# Darwin's linker doesn't understand --build-id and macOS builds use dsymutil
-# / dSYM bundles for a comparable purpose instead).
+# Enable GNU build-id notes for debuginfo auto-discovery. SPACK_BUILD_ID_ARGS
+# is set per-compiler-package (e.g. gcc sets it on platform=linux); it is
+# empty/unset on platforms or compilers that don't support it.
 if [ "$mode" = ld ] || [ "$mode" = ccld ]; then
-    if [ "${SPACK_SHORT_SPEC#*darwin}" = "${SPACK_SHORT_SPEC}" ]; then
+    if [ -n "${SPACK_BUILD_ID_ARGS:-}" ]; then
         case "$mode" in
             ld)
-                append flags_list "--build-id" ;;
+                append flags_list "$SPACK_BUILD_ID_ARGS" ;;
             ccld)
-                append flags_list "-Wl,--build-id" ;;
+                append flags_list "$linker_arg$SPACK_BUILD_ID_ARGS" ;;
         esac
     fi
 fi
