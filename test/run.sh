@@ -25,7 +25,7 @@ fi
 
 WRAPPER_DIR=$(mktemp -d)
 
-for name in cc c++ cpp fc ld; do
+for name in cc c++ cpp fc ld ld.gold ld.lld spackhip; do
     ln -s "$CC_SH" "$WRAPPER_DIR/$name"
 done
 
@@ -129,6 +129,15 @@ expect_mode() {
     fi
 }
 
+# expect_command LABEL WRAPPER ARGS_STRING EXPECTED_ARGV0
+expect_command() {
+    _label="$1"; _wrapper="$2"; _args="$3"; _expected="$4"
+    _actual=$(dump_args "$_wrapper" "$_args" | head -1)
+    if [ "$_actual" != "$_expected" ]; then
+        fail "$_label: expected '$_expected', got '$_actual'"
+    fi
+}
+
 # expect_contains LABEL ACTUAL NEEDLE -- line-wise membership
 expect_contains() {
     _label="$1"; _actual="$2"; _needle="$3"
@@ -181,6 +190,7 @@ SPACK_SYSTEM_DIRS_VALUE='"/"|"//"|"/bin"|"/bin/"|"/bin64"|"/bin64/"|"/include"|"
 EXTRA_VARS='
 SPACK_CPPFLAGS SPACK_CFLAGS SPACK_CXXFLAGS SPACK_FFLAGS SPACK_LDFLAGS SPACK_LDLIBS
 SPACK_ALWAYS_CPPFLAGS SPACK_ALWAYS_CFLAGS SPACK_ALWAYS_CXXFLAGS SPACK_ALWAYS_FFLAGS
+SPACK_HIPFLAGS SPACK_ALWAYS_HIPFLAGS
 SPACK_INCLUDE_DIRS SPACK_LINK_DIRS SPACK_RPATH_DIRS
 SPACK_STORE_INCLUDE_DIRS SPACK_STORE_LINK_DIRS SPACK_STORE_RPATH_DIRS
 SPACK_COMPILER_EXTRA_RPATHS SPACK_COMPILER_IMPLICIT_RPATHS
@@ -195,6 +205,7 @@ wrapper_environment() {
     SPACK_CXX=$REAL_CC
     SPACK_FC=$REAL_CC
     SPACK_F77=$REAL_CC
+    SPACK_HIPCXX=$REAL_CC
     SPACK_PREFIX=/spack-test-prefix
     # shellcheck disable=SC2209  # literal string "test", not the command
     SPACK_COMPILER_WRAPPER_PATH=test
@@ -207,6 +218,7 @@ wrapper_environment() {
     SPACK_CXX_RPATH_ARG='-Wl,-rpath,'
     SPACK_F77_RPATH_ARG='-Wl,-rpath,'
     SPACK_FC_RPATH_ARG='-Wl,-rpath,'
+    SPACK_HIPCXX_RPATH_ARG='-Wl,-rpath,'
     SPACK_TARGET_ARGS_CC='-march=znver2 -mtune=znver2'
     SPACK_TARGET_ARGS_CXX='-march=znver2 -mtune=znver2'
     SPACK_TARGET_ARGS_FORTRAN='-march=znver4 -mtune=znver4'
@@ -214,18 +226,21 @@ wrapper_environment() {
     SPACK_CXX_LINKER_ARG='-Wl,'
     SPACK_FC_LINKER_ARG='-Wl,'
     SPACK_F77_LINKER_ARG='-Wl,'
+    SPACK_HIPCXX_LINKER_ARG='-Wl,'
     SPACK_DTAGS_TO_ADD='--disable-new-dtags'
     SPACK_DTAGS_TO_STRIP='--enable-new-dtags'
     SPACK_COMPILER_FLAGS_KEEP=''
     SPACK_COMPILER_FLAGS_REPLACE='-Werror*|'
 
     # shellcheck disable=SC2090
-    export SPACK_CC SPACK_CXX SPACK_FC SPACK_F77 SPACK_PREFIX \
+    export SPACK_CC SPACK_CXX SPACK_FC SPACK_F77 SPACK_HIPCXX SPACK_PREFIX \
         SPACK_COMPILER_WRAPPER_PATH SPACK_DEBUG_LOG_DIR SPACK_DEBUG_LOG_ID \
         SPACK_SHORT_SPEC SPACK_SYSTEM_DIRS SPACK_MANAGED_DIRS \
         SPACK_CC_RPATH_ARG SPACK_CXX_RPATH_ARG SPACK_F77_RPATH_ARG SPACK_FC_RPATH_ARG \
+        SPACK_HIPCXX_RPATH_ARG \
         SPACK_TARGET_ARGS_CC SPACK_TARGET_ARGS_CXX SPACK_TARGET_ARGS_FORTRAN \
         SPACK_CC_LINKER_ARG SPACK_CXX_LINKER_ARG SPACK_FC_LINKER_ARG SPACK_F77_LINKER_ARG \
+        SPACK_HIPCXX_LINKER_ARG \
         SPACK_DTAGS_TO_ADD SPACK_DTAGS_TO_STRIP \
         SPACK_COMPILER_FLAGS_KEEP SPACK_COMPILER_FLAGS_REPLACE
 
@@ -245,9 +260,11 @@ wrapper_flags() {
     SPACK_CFLAGS='-Wall'
     SPACK_CXXFLAGS='-Werror'
     SPACK_FFLAGS='-w'
+    SPACK_HIPFLAGS='-fgpu-rdc'
     SPACK_LDFLAGS='-Wl,--gc-sections -L foo'
     SPACK_LDLIBS='-lfoo'
-    export SPACK_CPPFLAGS SPACK_CFLAGS SPACK_CXXFLAGS SPACK_FFLAGS SPACK_LDFLAGS SPACK_LDLIBS
+    export SPACK_CPPFLAGS SPACK_CFLAGS SPACK_CXXFLAGS SPACK_FFLAGS SPACK_HIPFLAGS \
+        SPACK_LDFLAGS SPACK_LDLIBS
 }
 
 # ----------------
@@ -370,6 +387,7 @@ EOF
 
 SPACK_CFLAGS_LINES='-Wall'
 SPACK_FFLAGS_LINES='-w'
+SPACK_HIPFLAGS_LINES='-fgpu-rdc'
 SPACK_LDLIBS_LINES='-lfoo'
 
 LHEADERPAD='-Wl,-headerpad_max_install_names'
@@ -461,6 +479,10 @@ baz.o
 -o
 foo
 -Wl,-rpath,foo'                      ld
+
+    expect_mode spackhip_ccld   spackhip ''           ccld
+    expect_mode spackhip_cc     spackhip '-c'         cc
+    expect_mode spackhip_vcheck spackhip '--version'  vcheck
 }
 
 test_expected_args() {
@@ -798,6 +820,13 @@ test_expected_args_with_flags() {
         "$TEST_ARGS_NO_PATHS" "$SPACK_FFLAGS_LINES" "$SPACK_CPPFLAGS_LINES" \
         "-Wl,--gc-sections" "$SPACK_LDLIBS_LINES")
     expect_args fc_flags fc "$TEST_ARGS" "$_exp"
+
+    # hip_flags (no target args; CPPFLAGS + HIPFLAGS applied; CFLAGS/CXXFLAGS absent)
+    _exp=$(concat "$REAL_CC" "$TEST_INCLUDE_PATHS" "-Lfoo" \
+        "$TEST_LIBRARY_PATHS" "$DISABLE_NEW_DTAGS_WL" "$TEST_WL_RPATHS" \
+        "$TEST_ARGS_NO_PATHS" "$SPACK_CPPFLAGS_LINES" "$SPACK_HIPFLAGS_LINES" \
+        '-Wl,--gc-sections' "$SPACK_LDLIBS_LINES")
+    expect_args hip_flags spackhip "$TEST_ARGS" "$_exp"
 
     # always_cflags
     SPACK_ALWAYS_CFLAGS='-always1 -always2'; export SPACK_ALWAYS_CFLAGS
@@ -1310,6 +1339,147 @@ test_add_debug_flags_validation() {
 }
 
 # ---------------------------------------------------------------------------
+# HIP tests
+# ---------------------------------------------------------------------------
+
+test_hip_command_routing() {
+    wrapper_environment
+    SPACK_HIPCXX=/bin/myhipcxx; export SPACK_HIPCXX
+
+    # spackhip argv0 -> SPACK_HIPCXX, not SPACK_CC
+    expect_command spackhip_command spackhip '' /bin/myhipcxx
+}
+
+# ---------------------------------------------------------------------------
+# -x / --language handling
+# ---------------------------------------------------------------------------
+
+test_x_language_dispatch() {
+    # Make sure -xlanguage dispatches to the appropriate underlying compiler
+    wrapper_environment
+    SPACK_CXX=/bin/mycxx; SPACK_FC=/bin/myfc
+    SPACK_F77=/bin/myf77; SPACK_HIPCXX=/bin/myhipcxx
+    export SPACK_CXX SPACK_FC SPACK_F77 SPACK_HIPCXX
+
+    # every spelling gcc and clang accept for the language selector
+    expect_command x_joined     cc '-xc++
+foo.cc'                                  /bin/mycxx
+    expect_command x_separate   cc '-x
+c++
+foo.cc'                                  /bin/mycxx
+    expect_command x_long_eq    cc '--language=c++
+foo.cc'                                  /bin/mycxx
+    expect_command x_long_sep   cc '--language
+c++
+foo.cc'                                  /bin/mycxx
+
+    # every language in the map, from a wrapper of a different language
+    expect_command x_to_c       c++ '-x
+c
+foo.c'                                   "$REAL_CC"
+    expect_command x_to_f77     cc  '-x
+f77
+foo.f'                                   /bin/myf77
+    expect_command x_to_f95     cc  '-x
+f95
+foo.f90'                                 /bin/myfc
+    expect_command x_to_hip     cc  '-xhip
+foo.hip'                                 /bin/myhipcxx
+
+    # last -x wins
+    expect_command x_last_wins  cc '-x
+c++
+foo.cc
+-x
+c
+bar.c'                                   "$REAL_CC"
+}
+
+test_x_non_language_values() {
+    wrapper_environment
+
+    # -x* also matches flags that are not language selectors (Intel arch
+    # flags); unknown languages must fall back to the argv0 compiler.
+    expect_command x_intel_host    cc '-xHost
+foo.c'                                   "$REAL_CC"
+    expect_command x_intel_avx     cc '-xCORE-AVX2
+foo.c'                                   "$REAL_CC"
+    expect_command x_none          cc '-x
+none
+foo.c'                                   "$REAL_CC"
+    expect_command x_asm_with_cpp  cc '-x
+assembler-with-cpp
+foo.S'                                   "$REAL_CC"
+}
+
+test_x_without_value() {
+    wrapper_environment
+
+    # a trailing -x/--language has no value to consume: the wrapper must not
+    # shift past the end of the argument list, and falls back to argv0
+    expect_command x_trailing        cc '-c
+foo.c
+-x'                                      "$REAL_CC"
+    expect_command language_trailing cc '-c
+foo.c
+--language'                              "$REAL_CC"
+}
+
+test_cpp_stays_cpp_with_x() {
+    wrapper_environment
+
+    # cpp accepts -x, but selecting a language must not turn preprocessing
+    # into a compile+link of $SPACK_CC
+    expect_mode    cpp_x_mode cpp '-x
+c
+foo.F90'                                 cpp
+    expect_command cpp_x_cmd  cpp '-x
+c
+foo.F90'                                 cpp
+}
+
+test_x_is_not_a_language_for_ld() {
+    wrapper_environment
+
+    # for every linker we wrap, -x is --discard-all and takes no value: it should
+    # not change the mode/command dispatched
+    for _ld in ld ld.gold ld.lld; do
+        expect_args "${_ld}_x" "$_ld" '-x
+hip
+foo.o'                                   "$(concat "$_ld" "$DISABLE_NEW_DTAGS" -x hip foo.o)"
+    done
+}
+
+test_hip_always_flags() {
+    wrapper_environment
+    SPACK_ALWAYS_HIPFLAGS='-always1 -always2'; export SPACK_ALWAYS_HIPFLAGS
+
+    # applied on the compile line ...
+    expect_args hip_always_compile spackhip '-c
+foo.hip'                                 "$(concat "$REAL_CC" -c foo.hip -always1 -always2)"
+
+    # ... and on version checks, like every other language
+    _args='-v
+--cmd-line-v-opt'
+    _exp=$(concat "$REAL_CC" "-always1" "-always2" "-v" "--cmd-line-v-opt")
+    expect_args hip_always_vcheck spackhip "$_args" "$_exp"
+
+    unset SPACK_ALWAYS_HIPFLAGS
+}
+
+test_x_hip_vcheck() {
+    wrapper_environment
+    SPACK_HIPCXX=/bin/myhipcxx; export SPACK_HIPCXX
+
+    # Make sure -xhip does not change the mode from vcheck
+    expect_mode    x_hip_vcheck_mode cc '-xhip
+--version'                               vcheck
+    # Make sure --version still chooses SPACK_HIPCXX when setting -xhip
+    expect_command x_hip_vcheck_cmd  cc '-xhip
+--version'                               /bin/myhipcxx
+}
+
+# ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
 
@@ -1359,6 +1529,14 @@ test_spack_managed_dirs_are_prioritized
 test_frandom_seed_not_added_without_env
 test_frandom_seed_filters_args
 test_add_debug_flags_validation
+test_hip_command_routing
+test_x_language_dispatch
+test_x_non_language_values
+test_x_without_value
+test_cpp_stays_cpp_with_x
+test_x_is_not_a_language_for_ld
+test_hip_always_flags
+test_x_hip_vcheck
 '
 
 all_tests="$wrapper_tests $list_ops_tests"
@@ -1371,7 +1549,9 @@ fi
 
 for t in $tests_to_run; do
     start_test "$t"
-    if is_list_ops_test "$t"; then
+    if ! command -v "$t" >/dev/null 2>&1; then
+        fail "test function '$t' is not defined"
+    elif is_list_ops_test "$t"; then
         set +u; "$t"; set -u
     else
         "$t"
