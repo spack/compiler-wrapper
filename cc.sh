@@ -797,6 +797,19 @@ elif [ "$SPACK_ADD_DEBUG_FLAGS" = "custom" ]; then
     extend flags_list SPACK_DEBUG_FLAGS
 fi
 
+# Inject compiler-supplied file-prefix-remapping flag(s)
+case "$mode" in
+    cpp|as|cc|ccld)
+        if [ -n "${SPACK_PREFIX_MAP_ARGS:-}" ]; then
+            append flags_list "$SPACK_PREFIX_MAP_ARGS"
+        fi
+        if [ -n "${SPACK_BUILD_PREFIX_MAP_ARGS:-}" ] && \
+           [ "$SPACK_BUILD_PREFIX_MAP_ARGS" != "${SPACK_PREFIX_MAP_ARGS:-}" ]; then
+            append flags_list "$SPACK_BUILD_PREFIX_MAP_ARGS"
+        fi
+        ;;
+esac
+
 spack_flags_list=""
 
 # Fortran flags come before CPPFLAGS
@@ -874,6 +887,20 @@ if [ "$mode" = ld ] || [ "$mode" = ccld ]; then
                 append flags_list "-headerpad_max_install_names" ;;
             ccld)
                 append flags_list "-Wl,-headerpad_max_install_names" ;;
+        esac
+    fi
+fi
+
+# Enable GNU build-id notes for debuginfo auto-discovery. SPACK_BUILD_ID_ARGS
+# is set per-compiler-package (e.g. gcc sets it on platform=linux); it is
+# empty/unset on platforms or compilers that don't support it.
+if [ "$mode" = ld ] || [ "$mode" = ccld ]; then
+    if [ -n "${SPACK_BUILD_ID_ARGS:-}" ]; then
+        case "$mode" in
+            ld)
+                append flags_list "$SPACK_BUILD_ID_ARGS" ;;
+            ccld)
+                append flags_list "$linker_arg$SPACK_BUILD_ID_ARGS" ;;
         esac
     fi
 fi
