@@ -352,7 +352,7 @@ case "$command" in
     *)
         _command_from_flags "$@"
         case "$command" in
-            cc|c89|c99|gcc|clang|armclang|icc|icx|pgcc|nvc|xlc|xlc_r|fcc|amdclang|cl.exe|craycc)
+            cc|c89|c99|gcc|clang|armclang|icc|icx|pgcc|nvc|xlc|xlc_r|fcc|amdclang|aoc|cl.exe|craycc)
                 command="$SPACK_CC"
                 vdep=c
                 comp="CC"
@@ -360,7 +360,7 @@ case "$command" in
                 debug_flags="-g"
                 vcheck_flags="${SPACK_ALWAYS_CFLAGS}"
                 ;;
-            c++|CC|g++|clang++|armclang++|icpc|icpx|pgc++|nvc++|xlc++|xlc++_r|FCC|amdclang++|crayCC)
+            c++|CC|g++|clang++|armclang++|icpc|icpx|pgc++|nvc++|xlc++|xlc++_r|FCC|amdclang++|aoc++|crayCC)
                 command="$SPACK_CXX"
                 vdep=cxx
                 comp="CXX"
@@ -368,7 +368,7 @@ case "$command" in
                 debug_flags="-g"
                 vcheck_flags="${SPACK_ALWAYS_CXXFLAGS}"
                 ;;
-            ftn|f90|fc|f95|gfortran|flang|armflang|ifort|ifx|pgfortran|nvfortran|xlf90|xlf90_r|nagfor|frt|amdflang|crayftn)
+            ftn|f90|fc|f95|gfortran|flang|armflang|ifort|ifx|pgfortran|nvfortran|xlf90|xlf90_r|nagfor|frt|amdflang|aof|crayftn)
                 command="$SPACK_FC"
                 vdep=fortran
                 comp="FC"
