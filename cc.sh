@@ -368,7 +368,7 @@ case "$command" in
                 debug_flags="-g"
                 vcheck_flags="${SPACK_ALWAYS_CXXFLAGS}"
                 ;;
-            ftn|f90|fc|f95|gfortran|flang|armflang|ifort|ifx|pgfortran|nvfortran|xlf90|xlf90_r|nagfor|frt|amdflang|crayftn)
+            ftn|f90|fc|f95|gfortran|flang|armflang|ifort|ifx|pgfortran|nvfortran|xlf90|xlf90_r|lfortran|nagfor|frt|amdflang|crayftn)
                 command="$SPACK_FC"
                 vdep=fortran
                 comp="FC"
